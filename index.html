@@ -30,6 +30,11 @@
         <li><a href="#licenses">Licenses</a></li>
       </ul>
     </nav>
+    <div class="exam-nav" role="group" aria-label="Exam controls">
+      <button type="button" id="exBack">Back</button>
+      <button type="button" id="exSkip">Skip</button>
+      <button type="button" id="exEnd">End</button>
+    </div>
   </div>
 </header>
 
@@ -303,9 +308,55 @@
             <li>70% Passing Score</li>
             <li>No Time Limit</li>
           </ul>
-          <a class="btn btn-yellow" href="#practice">Start Mock Exam</a>
+          <a class="btn btn-yellow" id="startExam" href="#mock-student">Start Mock Exam</a>
           <a class="btn btn-ghost" href="#licenses">Go Back</a>
           <a class="btn btn-ghost" href="#resources">Study First</a>
+        </aside>
+      </div>
+    </div>
+  </section>
+  </div>
+  <div class="page" data-page="mock" hidden>
+  <!-- MOCK EXAM -->
+  <section class="mock">
+    <div class="wrap">
+      <div class="mock-card">
+        <div class="mock-head">
+          <h2 id="mkLic">Student</h2>
+          <span id="mkCount">Question 1 of 10</span>
+        </div>
+        <div class="prog" aria-hidden="true"><i id="mkBar"></i></div>
+        <p class="mock-topic" id="mkTopic"></p>
+        <h2 class="mock-q" id="mkQ" tabindex="-1"></h2>
+        <div class="mock-opts" id="mkOpts"></div>
+        <div class="mock-foot">
+          <button class="btn btn-yellow" id="mkNext" type="button" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <div class="page" data-page="result" hidden>
+  <!-- RESULT -->
+  <section class="result">
+    <div class="wrap">
+      <h2 class="title">Did you pass?</h2>
+      <p class="verdict" id="rsVerdict"></p>
+      <div class="choose-body">
+        <div class="learn">
+          <h3>What you knew</h3>
+          <p class="intro">How well you did in each field of the mock exam.</p>
+          <div class="topics" id="rsTopics"></div>
+        </div>
+        <aside class="exam">
+          <h3>Exam Results</h3>
+          <div class="total" id="rsTotal"></div>
+          <ul>
+            <li id="rsNeed"></li>
+          </ul>
+          <a class="btn btn-ghost" id="rsBack" href="#choose-student">Go Back</a>
+          <a class="btn btn-yellow" id="rsAgain" href="#mock-student">Take Again</a>
         </aside>
       </div>
     </div>
@@ -389,21 +440,120 @@
   });
   render();
 
+  /* mock exam: 10 questions, 2 for each field in "What you'll learn" */
+  var LICENSES = { student: "Student", nonpro: "Non-Pro", pro: "Professional" };
+  var FIELDS = ["Road Signs & Road Marking", "Traffic Rules & Regulations", "Vehicle Maintenance Basics",
+                "Defensive Driving Techniques", "PH Traffic Laws Compliance"];
+  var M = [
+    { f: 0, q: "What should you do when you reach a red octagonal STOP sign?",
+      o: ["Slow down and proceed if the road is clear", "Come to a complete stop, then go when it is safe", "Stop only if you see other vehicles", "Honk and keep moving"], a: 1 },
+    { f: 1, q: "Two vehicles reach an intersection with no signs or signals at the same time. Who gives way?",
+      o: ["The bigger vehicle", "The faster vehicle", "The driver on the left gives way to the driver on the right", "The driver on the right gives way to the driver on the left"], a: 2 },
+    { f: 2, q: "How often should you check your tire pressure?",
+      o: ["Only when a tire looks flat", "Once a year", "Only after a puncture", "Regularly, and before long trips"], a: 3 },
+    { f: 3, q: "What is a safe following distance on a dry road?",
+      o: ["One car length at any speed", "About three seconds behind the vehicle ahead", "As close as possible to save fuel", "Right behind the other driver's bumper"], a: 1 },
+    { f: 4, q: "Which documents must you carry while driving?",
+      o: ["Your birth certificate and passport", "Only the car key", "Your valid driver's license and the vehicle's registration documents", "A copy of your school ID"], a: 2 },
+    { f: 0, q: "What does a YIELD sign tell you to do?",
+      o: ["Give way to other traffic and be ready to stop", "Stop for at least five seconds", "Speed up to merge", "Park on the side of the road"], a: 0 },
+    { f: 1, q: "When is it safe to overtake another vehicle?",
+      o: ["On a curve, to save time", "Near a pedestrian crossing", "When the road ahead is clear and overtaking is allowed", "When approaching the top of a hill"], a: 2 },
+    { f: 2, q: "The engine temperature warning light comes on while you are driving. What should you do?",
+      o: ["Pull over safely and switch off the engine to let it cool", "Open the radiator cap right away", "Keep driving at full speed to the nearest shop", "Ignore it if the car still moves"], a: 0 },
+    { f: 3, q: "It is raining heavily and visibility is poor. What should you do?",
+      o: ["Drive faster to get out of the rain", "Turn on your hazard lights and keep moving", "Brake hard whenever you see a puddle", "Slow down, turn on your headlights, and increase your following distance"], a: 3 },
+    { f: 4, q: "Which of these is prohibited while driving?",
+      o: ["Holding a phone to call or text", "Wearing a seat belt", "Checking your mirrors", "Turning on your headlights at night"], a: 0 }
+  ];
+  var PASS = Math.ceil(M.length * 0.7); /* 70% passing score */
+  var mi = 0, answers = [], license = "student", finished = false;
+  var mkLic = document.getElementById("mkLic"), mkCount = document.getElementById("mkCount"),
+      mkBar = document.getElementById("mkBar"), mkTopic = document.getElementById("mkTopic"),
+      mkQ = document.getElementById("mkQ"), mkOpts = document.getElementById("mkOpts"),
+      mkNext = document.getElementById("mkNext"), exBack = document.getElementById("exBack"),
+      startBtn = document.getElementById("startExam");
+
+  function startMock(lic) {
+    license = lic; mi = 0; finished = false;
+    answers = M.map(function () { return null; });
+    mkLic.textContent = LICENSES[lic];
+    drawMock();
+  }
+  function drawMock() {
+    var item = M[mi];
+    mkCount.textContent = "Question " + (mi + 1) + " of " + M.length;
+    mkBar.style.width = (mi / M.length * 100) + "%";
+    mkTopic.textContent = FIELDS[item.f];
+    mkQ.textContent = item.q;
+    mkNext.disabled = answers[mi] === null;
+    mkNext.textContent = mi === M.length - 1 ? "Finish" : "Next";
+    exBack.disabled = mi === 0;
+    mkOpts.innerHTML = "";
+    item.o.forEach(function (text, n) {
+      var label = document.createElement("label"), box = document.createElement("input"), span = document.createElement("span");
+      label.className = "pick";
+      box.type = "radio"; box.name = "answer"; box.checked = answers[mi] === n;
+      box.addEventListener("change", function () { answers[mi] = n; mkNext.disabled = false; });
+      span.textContent = text;
+      label.appendChild(box); label.appendChild(span);
+      mkOpts.appendChild(label);
+    });
+    mkQ.focus();
+  }
+  function goNext() {
+    if (mi < M.length - 1) { mi++; drawMock(); } else showResult();
+  }
+  mkNext.addEventListener("click", goNext);
+  document.getElementById("exSkip").addEventListener("click", goNext);
+  document.getElementById("exBack").addEventListener("click", function () { if (mi > 0) { mi--; drawMock(); } });
+  document.getElementById("exEnd").addEventListener("click", showResult);
+
+  function showResult() {
+    var right = FIELDS.map(function () { return 0; });
+    M.forEach(function (m, i) { if (answers[i] === m.a) right[m.f]++; });
+    var score = right.reduce(function (a, b) { return a + b; }, 0), passed = score >= PASS;
+    var totals = FIELDS.map(function (_, k) { return M.filter(function (m) { return m.f === k; }).length; });
+    var cards = document.querySelectorAll(".choose .topic"), box = document.getElementById("rsTopics");
+    box.innerHTML = "";
+    cards.forEach(function (card, k) {
+      var copy = card.cloneNode(true), p = copy.querySelector("p");
+      p.className = "score " + (right[k] === totals[k] ? "full" : right[k] === 0 ? "none" : "part");
+      p.textContent = right[k] + " / " + totals[k];
+      box.appendChild(copy);
+    });
+    document.getElementById("rsVerdict").innerHTML = passed
+      ? 'CONGRATULATIONS! <em>You passed!</em>'
+      : 'Not this time. <em>Keep practicing!</em>';
+    document.getElementById("rsTotal").textContent = score + " / " + M.length;
+    document.getElementById("rsNeed").textContent = "You needed " + PASS + " to pass.";
+    document.getElementById("rsBack").href = "#choose-" + license;
+    document.getElementById("rsAgain").href = "#mock-" + license;
+    finished = true;
+    location.hash = "result";
+  }
+
   /* page switching (no sliding) */
   var pageOf = { "": "home", "top": "home", "practice": "home", "how": "home",
                  "about": "about", "resources": "resources", "licenses": "licenses",
-                 "choose-student": "choose", "choose-nonpro": "choose", "choose-pro": "choose" };
+                 "choose-student": "choose", "choose-nonpro": "choose", "choose-pro": "choose",
+                 "mock-student": "mock", "mock-nonpro": "mock", "mock-pro": "mock", "result": "result" };
   var pages = document.querySelectorAll(".page");
   var navLinks = document.querySelectorAll("nav a");
   var tabs = document.querySelectorAll(".tabs a");
   var titles = { home: "LTO PASS – Pass your LTO Driver's exam on the first try",
                  about: "About – LTO PASS", resources: "Resources – LTO PASS",
-                 licenses: "Licenses – LTO PASS", choose: "Choose your license – LTO PASS" };
-  var current;
+                 licenses: "Licenses – LTO PASS", choose: "Choose your license – LTO PASS",
+                 mock: "Mock exam – LTO PASS", result: "Results – LTO PASS" };
+  var current, site = document.querySelector("header.site");
   function show() {
     var id = location.hash.replace("#", "");
     var name = pageOf[id] || "home";
-    var navName = name === "choose" ? "licenses" : name;
+    var navName = (name === "choose" || name === "mock" || name === "result") ? "licenses" : name;
+    var lic = id.split("-")[1];
+    if (name === "result" && !finished) { location.hash = "choose-student"; return; }
+    if (name === "choose") startBtn.href = "#mock-" + lic;
+    if (name === "mock" && current !== "mock") startMock(lic);
     pages.forEach(function (p) { p.hidden = p.getAttribute("data-page") !== name; });
     navLinks.forEach(function (a) {
       var on = pageOf[a.getAttribute("href").slice(1)] === navName;
@@ -413,6 +563,7 @@
       if (a.getAttribute("href").slice(1) === id) a.setAttribute("aria-current", "true");
       else a.removeAttribute("aria-current");
     });
+    site.classList.toggle("exam-mode", name === "mock");
     document.title = titles[name];
     var t = (id === "practice" || id === "how") ? document.getElementById(id) : null;
     if (name !== current) window.scrollTo(0, 0);
