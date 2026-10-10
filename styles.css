@@ -189,12 +189,10 @@
     .lic-grid, .steps { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 640px) {
-    nav ul { gap: 16px; }
     .brand small { display: none; }
     .cards2, .lic-grid, .steps { grid-template-columns: 1fr; }
     section { padding-block: 56px; }
   }
-  @media (max-width: 480px) { nav li:first-child { display: none; } nav ul { gap: 12px; } nav a { font-size: .8rem; } .brand b { font-size: 1.1rem; } }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 
   /* ---------- enhancements ---------- */
@@ -360,3 +358,18 @@
 
   /* result cards: icon, title and score line up the same in every card */
   #rsTopics .topic h4 { min-height: 3.75em; display: flex; align-items: center; justify-content: center; }
+
+  /* mobile menu: the nav drops down from an arrow at the top right */
+  .menu-toggle { display: none; background: none; border: 0; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; }
+  .menu-toggle svg { display: block; transition: transform .2s; }
+  .menu-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  @media (max-width: 640px) {
+    .menu-toggle { display: block; }
+    header.site nav { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--navy-900); border-bottom: 1px solid var(--line); box-shadow: 0 12px 24px rgba(4,12,30,.35); }
+    header.site nav.open { display: block; }
+    nav ul { flex-direction: column; gap: 0; width: min(1120px, 100% - 48px); margin-inline: auto; padding-block: 8px; }
+    nav a { display: block; padding: 14px 0; font-size: 1rem; border-bottom: 0; }
+    nav li + li { border-top: 1px solid var(--line); }
+    nav a:hover, nav a[aria-current="true"] { color: var(--yellow); }
+  }
+  .exam-mode .menu-toggle { display: none; }

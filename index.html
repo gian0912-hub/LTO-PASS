@@ -22,7 +22,7 @@
       </svg>
       <span><b>LTO PASS</b><small>Know the road. Pass the exam.</small></span>
     </a>
-    <nav aria-label="Main">
+    <nav aria-label="Main" id="mainnav">
       <ul>
         <li><a href="#top" aria-current="true">Home</a></li>
         <li><a href="#about">About</a></li>
@@ -30,6 +30,9 @@
         <li><a href="#licenses">Licenses</a></li>
       </ul>
     </nav>
+    <button class="menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mainnav">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
     <div class="exam-nav" role="group" aria-label="Exam controls">
       <button type="button" id="exBack">Back</button>
       <button type="button" id="exSkip">Skip</button>
@@ -533,6 +536,16 @@
     location.hash = "result";
   }
 
+  /* mobile menu */
+  var menuBtn = document.querySelector(".menu-toggle"), mainNav = document.getElementById("mainnav");
+  function setMenu(open) {
+    mainNav.classList.toggle("open", open);
+    menuBtn.setAttribute("aria-expanded", open);
+  }
+  menuBtn.addEventListener("click", function () { setMenu(!mainNav.classList.contains("open")); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false); });
+  mainNav.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
+
   /* page switching (no sliding) */
   var pageOf = { "": "home", "top": "home", "practice": "home", "how": "home",
                  "about": "about", "resources": "resources", "licenses": "licenses",
@@ -564,6 +577,7 @@
       else a.removeAttribute("aria-current");
     });
     site.classList.toggle("exam-mode", name === "mock");
+    setMenu(false);
     document.title = titles[name];
     var t = (id === "practice" || id === "how") ? document.getElementById(id) : null;
     if (name !== current) window.scrollTo(0, 0);
